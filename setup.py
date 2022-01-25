@@ -4,7 +4,7 @@ from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 
 setup_args = generate_distutils_setup(
-    packages=['hmi_ros', 'hmi_ros.outputs'],
+    packages=['hmi_ros', 'hmi_ros.outputs', 'hmi_ros.inputs'],
     package_dir={'': 'include'},
 )
 

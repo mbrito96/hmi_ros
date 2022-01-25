@@ -3,25 +3,16 @@
 import rospy
 
 class Toggling_Output:
-    # Board-specific. Implements the configuration of the pin
-    def ConfigPin(self, pin):
-        #TBD
-        return
-
-    # Board-specific. Implements the output set and clear routine
-    def SetOutput(self, val):
-        # self.board.digital_write(self.pin, val)
-        rospy.loginfo('Setting pin %d to %d', self.pin, val)
-        return
 
     # default_state 0 or 1. The value to set the output when the sequence finishes 
-    def __init__(self, name, pin, sample_freq, default_state = 0):
+    def __init__(self, name, pin, pin_set_callback, sample_freq, default_state = 0):
         self.name = name
         self.pin = pin
+        self.SetOutput = pin_set_callback
         self.enabled = False
         self.Fs = sample_freq
         self.default_state = default_state
-        self.SetOutput(default_state)
+        self.SetOutput(self.pin, default_state)
 
     # @param time_on_unit Defines whether time_on is given in seconds ('s') or as duty cycle ('%')
     # @param length_unit Defines whether length is given in seconds ('s') or as number of repetitions ('n')
@@ -38,7 +29,7 @@ class Toggling_Output:
         self.togCount = 0      # to keep track of number of ticks elapsed
         self.seqCount = 0      # to keep track of number of ticks elapsed
         self.tPeriod = period * self.Fs
-        self.callback = callback
+        self.Callback = callback
         self.respawn = False
         if(respawn >= 0):
            self.respawn = True
@@ -79,13 +70,13 @@ class Toggling_Output:
             if(self.seqCount >= self.tSequence):  # Sequence finished, terminate
                 self.seqCount = 0      # Also used as respawn counter
                 self.finished = True
-                self.SetOutput(self.default_state) 
-                self.callback(self.name)
+                self.SetOutput(self.pin, self.default_state) 
+                self.Callback(self.name)
             else:                       # Else, execute toggling logic
                 if(self.togCount <= self.tOn):
-                    self.SetOutput(1)
+                    self.SetOutput(self.pin, 1)
                 elif(self.togCount < self.tPeriod):
-                    self.SetOutput(0)
+                    self.SetOutput(self.pin, 0)
                 
                 if(self.togCount >= self.tPeriod):
                     self.togCount = 0
