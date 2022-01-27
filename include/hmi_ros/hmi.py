@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import rospy
+import RPi.GPIO as GPIO
 from .outputs import *
+from .inputs import *
 
 Fs = 10 # Hz
 
@@ -12,19 +14,35 @@ def ConfigPin(self, pin):
     
 # Board-specific. Implements the output set and clear routine
 def SetOutput(pin, val):
-    # self.board.digital_write(self.pin, val)
-    rospy.loginfo('Setting pin %d to %d', pin, val)
+    GPIO.output(pin, GPIO.HIGH if val == 1 else GPIO.LOW)
+    # rospy.loginfo('Setting pin %d to %d', pin, val)
     return
 
-out = Toggling_Output(name = 'out1', pin = 1, pin_set_callback = SetOutput, sample_freq = Fs, default_state = 0)
+out1 = None
+in1 = None
 
 def hmi_start():
+    global out1
     rospy.init_node('hmi_node')
+    pub = rospy.Publisher('gpio', String, queue_size=10)
     rate = rospy.Rate(Fs) # 10hz
-    out.Config(time_on = 0.5, time_on_unit = 's', period = 1, seq_length = 4, length_unit = 'n', callback = FinishedSeq, respawn = 2)
+    GPIO.setmode(GPIO.BOARD)
+    # OUTPUT
+    outPin = 31
+    GPIO.setup(outPin, GPIO.OUT, initial=GPIO.LOW)
+    out1 = Toggling_Output(name = 'out1', pin = outPin, pin_set_callback = SetOutput, sample_freq = Fs, default_state = 0)
+    out1.Config(time_on = 50, time_on_unit = '%', period = 0.8, seq_length = 4, length_unit = 's', callback = FinishedSeq, respawn = 2)
+    # INPUT
+    in1 = Input(name='IN1', pin=12, bouncetime = 10, activeLow = False)
+
     while not rospy.is_shutdown():
-        out.Tick()
+    #    print("Waiting for key...")
+    #    inp = input()
+    #    pub.publish(inp)
+        # out1.Tick()
         rate.sleep()
+    GPIO.cleanup()
+    
 
 def FinishedSeq(name):
     rospy.loginfo("HMI -> Finished sequence %s", name)
