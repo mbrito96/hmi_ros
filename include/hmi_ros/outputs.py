@@ -1,18 +1,33 @@
 #!/usr/bin/env python
 
+import RPi.GPIO as GPIO
 import rospy
 
 class Toggling_Output:
 
+    # Board-specific. Implements the configuration of the pin
+    def ConfigGpio(self):
+        GPIO.setup(self.pin, GPIO.OUT, initial=self.default_state)
+        return
+
+    # Board-specific. Implements the output set and clear routine
+    def SetOutput(self, val):
+        GPIO.output(self.pin, GPIO.HIGH if val == 1 else GPIO.LOW)
+        # rospy.loginfo('Setting pin %d to %d', pin, val)
+        return
+
     # default_state 0 or 1. The value to set the output when the sequence finishes 
-    def __init__(self, name, pin, pin_set_callback, sample_freq, default_state = 0):
+    def __init__(self, name, pin, sample_freq, default_state = 0):
         self.name = name
         self.pin = pin
-        self.SetOutput = pin_set_callback
         self.enabled = False
         self.Fs = sample_freq
         self.default_state = default_state
-        self.SetOutput(self.pin, default_state)
+        self.ConfigGpio()
+        self.SetOutput(self.default_state)
+    
+    def __del__(self):
+        self.SetOutput(self.default_state)
 
     # @param time_on_unit Defines whether time_on is given in seconds ('s') or as duty cycle ('%')
     # @param length_unit Defines whether length is given in seconds ('s') or as number of repetitions ('n')
@@ -23,7 +38,7 @@ class Toggling_Output:
     #                If time_on_unit is '%' -> Percentage of period to keep the output high 
     # @param callback Function for calling when sequence finishes. Name of output is sent as parameter
     # @param respawn Delay in seconds after output sequence finishes for restarting the sequence. -1 disables respawn feature
-    def Config(self, time_on, time_on_unit, period, seq_length, length_unit, callback, respawn = -1):
+    def Config(self, time_on, time_on_unit, period, seq_length, length_unit, callback = None, respawn = -1):
         self.enabled = True
         self.finished = False
         self.togCount = 0      # to keep track of number of ticks elapsed
@@ -70,13 +85,14 @@ class Toggling_Output:
             if(self.seqCount >= self.tSequence):  # Sequence finished, terminate
                 self.seqCount = 0      # Also used as respawn counter
                 self.finished = True
-                self.SetOutput(self.pin, self.default_state) 
-                self.Callback(self.name)
+                self.SetOutput(self.default_state) 
+                if(self.Callback != None):
+                    self.Callback(self.name)
             else:                       # Else, execute toggling logic
                 if(self.togCount <= self.tOn):
-                    self.SetOutput(self.pin, 1)
+                    self.SetOutput(1)
                 elif(self.togCount < self.tPeriod):
-                    self.SetOutput(self.pin, 0)
+                    self.SetOutput(0)
                 
                 if(self.togCount >= self.tPeriod):
                     self.togCount = 0

@@ -8,22 +8,17 @@ TYPE_NONE = 0
 TYPE_SHORT_PRESS = 1
 TYPE_LONG_PRESS = 2
 
-T_SHORT_PRESS = 0.4
+T_SHORT_PRESS = 0.8
 T_LONG_PRESS = 2 # sec
 T_FOLLOWUP_WINDOW = 1.5	# After off edge (on -> off), window of time for the user to input another button to be considered in the command
-T_CANCEL_WINDOW = 3	# After on edge (off -> on), window of time before aborting the command
+T_CANCEL_WINDOW = 4	# After on edge (off -> on), window of time before aborting the command
 
 STATE_IDLE = 0
 STATE_DETECTING = 1
 
-# class GPIO():
-# 	def __init__(self):
-# 		self.LOW = 0
-# 		self.HIGH = 1
-
-
 class Input:
-	def __init__(self, name, pin, bouncetime = 10, activeLow = False):
+	# @param topicToPublish name of the topic to publish input detected. Message type must be std_msgs.msg.String
+	def __init__(self, name, topicToPublish, pin, bouncetime = 10, activeLow = False):
 		self.name = name
 		self.pin = pin
 		self.bouncetime = bouncetime
@@ -33,10 +28,9 @@ class Input:
 		self.time_edgeOff = 0.0
 		self.actionTimer = None
 		self.state = STATE_IDLE
-		GPIO.setmode(GPIO.BOARD)
 		GPIO.setup(pin, GPIO.IN)
 		GPIO.add_event_detect(pin, GPIO.BOTH, callback=self.GpioCallback, bouncetime=50)
-		# self.subs = rospy.Subscriber('gpio', String, self.GpioCallback)
+		self.pub = rospy.Publisher(topicToPublish, String, queue_size=10)
 
 
 	def GpioCallback(self, channel):
@@ -79,41 +73,47 @@ class Input:
 		else:
 			return None
 
-	def CheckForSequenceDone(self):
-		retVal = True
+	def IdentifySequence(self):
+		detected = True
+		valDetected = ""
 		if(self.input_buf == [TYPE_SHORT_PRESS]):
-			rospy.loginfo('%s -> ==== SHORT PRESS ====.', self.name)
+			rospy.logdebug('%s -> ==== SHORT PRESS ====.', self.name)
+			valDetected = 'SP'	# Short press
 		elif(self.input_buf == [TYPE_SHORT_PRESS, TYPE_SHORT_PRESS]):
-			rospy.loginfo('%s -> ==== DOUBLE SHORT PRESS ====.', self.name)
+			rospy.logdebug('%s -> ==== DOUBLE SHORT PRESS ====.', self.name)
+			valDetected = 'SSP'	# Double short press
 		elif(self.input_buf == [TYPE_LONG_PRESS]):
-			rospy.loginfo('%s -> ==== LONG PRESS ====.', self.name)
+			rospy.logdebug('%s -> ==== LONG PRESS ====.', self.name)
+			valDetected = 'LP'	# Long press
 		elif(self.input_buf == [TYPE_SHORT_PRESS, TYPE_SHORT_PRESS, TYPE_LONG_PRESS]):
-			rospy.loginfo('%s -> ==== DOUBLE SHORT SINGLE LONG PRESS ====.', self.name)
+			rospy.logdebug('%s -> ==== DOUBLE SHORT SINGLE LONG PRESS ====.', self.name)
+			valDetected = 'SSLP'	# Double short Long press
 		else:
-			rospy.loginfo('%s -> ==== NONE ====.', self.name)
-			retVal = False
-		return retVal
+			rospy.logdebug('%s -> ==== NONE ====.', self.name)
+			detected = False
+		
+		if(detected):
+			self.pub.publish(valDetected)
+
+		return detected
 
 
 	def ChangeState(self, st):
 		if(st == STATE_IDLE):
-			rospy.loginfo('Going idle...')	
 			self.state = STATE_IDLE
 			try:
 				self.actionTimer.shutdown()
 			except Exception:
 				pass
 		elif(st == STATE_DETECTING):
-			rospy.loginfo('Detecting...')
 			self.input_buf *= 0	# clear() method not working
 			self.state = STATE_DETECTING
 
 
 	def TimerCancelCallback(self, *args):
-		rospy.loginfo('%s -> Cancelling input...', self.name)
 		self.ChangeState(STATE_IDLE)
 		
 	def TimerFollowupCallback(self, *args):
-		self.CheckForSequenceDone()	# If valid sequence detected in input buffer
+		self.IdentifySequence()	# If valid sequence detected in input buffer
 		self.ChangeState(STATE_IDLE)
 
