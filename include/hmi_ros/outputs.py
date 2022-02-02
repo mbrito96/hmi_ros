@@ -26,8 +26,6 @@ class Toggling_Output:
         self.ConfigGpio()
         self.SetOutput(self.default_state)
     
-    def __del__(self):
-        self.SetOutput(self.default_state)
 
     # @param time_on_unit Defines whether time_on is given in seconds ('s') or as duty cycle ('%')
     # @param length_unit Defines whether length is given in seconds ('s') or as number of repetitions ('n')
