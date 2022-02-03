@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import re
 import RPi.GPIO as GPIO
 from .outputs import *
 from .inputs import *
@@ -13,21 +14,48 @@ inputs = []
 outputs = []
 
 def NewOutputOrder(data):
-    rospy.loginfo(data.outputs)
-    rospy.loginfo(data.type)
-    rospy.loginfo(data.params)
+    
+    if(data.type == 'SET'):
+        for o in outputs:
+            if o.name in data.outputs:
+                o.Set()
+    elif(data.type == 'CLEAR'):
+        for o in outputs:
+            if o.name in data.outputs:
+                o.Clear()
+    else:
+        # Tokenize params
+        tok = list(filter(lambda a: False if (a=='' or a==' ' or a=='=') else True, re.split(r'([\d.]+|\W+)', data.params)))
+        tok = [s.strip() for s in tok]
+        tOn_u = tok[2]  # tOn units
+        repeat_u = tok[7]
+        respawn = tok[9]   # Respawn output if '=-'. 
+        # rospy.loginfo('Output order tokens: %s', ' '.join(tok))
+
+        try:
+            tOn = float(tok[1])         # Time on / Duty cycle
+            p = float(tok[4])           # Period
+            repeat = float(tok[6])      # Repeat (for n seconds or n times)
+            respawn_val = float(tok[10])  # Respawn delay
+        except Exception:
+            rospy.logwarn('%s -> Invalid arguments for output order', node_name)
+            return
+
+        for o in outputs:
+            if o.name in data.outputs:
+                o.ConfigToggle(time_on = tOn, time_on_unit = tOn_u, period = p, seq_length = repeat, length_unit = repeat_u, respawn = (-1 if respawn == '=-' else respawn_val))
+
+
 
 def hmi_start():
-    global out_blue, out_green, in_green, in_green, out_coil
+    global inputs, outputs
 
     rospy.init_node(node_name)
     GPIO.setmode(GPIO.BOARD)
     ConfigureHMI()
     rospy.Subscriber(node_name + '/output_order', outCmd, NewOutputOrder)
     rate = rospy.Rate(Fs) # 10hz
-
-
-    # out_blue.Config(time_on = 100, time_on_unit = '%', period = 0.8, seq_length = 4, length_unit = 's', respawn = 0)
+    outputs[0].ConfigToggle(time_on = 50, time_on_unit = '%', period = 1, seq_length = 2, length_unit = 'n', respawn = 0)
 
     while enabled and not rospy.is_shutdown():
         for o in outputs:
@@ -69,8 +97,9 @@ def AddInput(config):
     if not(isinstance(topic,str) and isinstance(pin, int) and isinstance(bncTime, int) and isinstance(actLow, bool)):
         rospy.loginfo('Unable to configure input %s. Bad parameter format.', name)
     else:
+        rospy.loginfo('Input params %s - %s - %d - %d - %d', name, topic, pin, bncTime, actLow)
         inputs.append(Input(name, topic, pin, bncTime, actLow))
-        rospy.loginfo('Added input')
+        rospy.loginfo('Added input %s', name)
     
 def AddOutput(config):
     global outputs
@@ -81,7 +110,7 @@ def AddOutput(config):
     if not(isinstance(pin, int) and isinstance(defSt, int)):
         rospy.loginfo('Unable to configure output %s. Bad parameter format.', name)
     else:
-        inputs.append(Toggling_Output(name, pin, Fs, defSt))
-        rospy.loginfo('Added output')
+        outputs.append(Toggling_Output(name, pin, Fs, defSt))
+        rospy.loginfo('Added output %s', name)
 
 

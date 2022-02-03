@@ -13,7 +13,7 @@ class Toggling_Output:
     # Board-specific. Implements the output set and clear routine
     def SetOutput(self, val):
         GPIO.output(self.pin, GPIO.HIGH if val == 1 else GPIO.LOW)
-        # rospy.loginfo('Setting pin %d to %d', pin, val)
+        #rospy.loginfo('Setting pin %d to %d', self.pin, val)
         return
 
     # default_state 0 or 1. The value to set the output when the sequence finishes 
@@ -26,6 +26,14 @@ class Toggling_Output:
         self.ConfigGpio()
         self.SetOutput(self.default_state)
     
+    def Set(self):
+        rospy.loginfo("Setting output %s", self.name)
+        self.ConfigToggle(100, '%', 600, 1, 'n', None, 0)
+
+    def Clear(self):
+        rospy.loginfo("Clearing output %s", self.name)
+        self.ConfigToggle(0, '%', 600, 1, 'n', None, 0)
+
 
     # @param time_on_unit Defines whether time_on is given in seconds ('s') or as duty cycle ('%')
     # @param length_unit Defines whether length is given in seconds ('s') or as number of repetitions ('n')
@@ -36,7 +44,7 @@ class Toggling_Output:
     #                If time_on_unit is '%' -> Percentage of period to keep the output high 
     # @param callback Function for calling when sequence finishes. Name of output is sent as parameter
     # @param respawn Delay in seconds after output sequence finishes for restarting the sequence. -1 disables respawn feature
-    def Config(self, time_on, time_on_unit, period, seq_length, length_unit, callback = None, respawn = -1):
+    def ConfigToggle(self, time_on, time_on_unit, period, seq_length, length_unit, callback = None, respawn = -1):
         self.enabled = True
         self.finished = False
         self.togCount = 0      # to keep track of number of ticks elapsed
@@ -74,7 +82,6 @@ class Toggling_Output:
     def Tick(self):
         if(self.enabled == False):
             return
-
 
         if(self.finished == False):
             self.seqCount+=1   
