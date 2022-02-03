@@ -10,7 +10,7 @@ TYPE_LONG_PRESS = 2
 
 T_SHORT_PRESS = 0.8
 T_LONG_PRESS = 2 # sec
-T_FOLLOWUP_WINDOW = 1.5	# After off edge (on -> off), window of time for the user to input another button to be considered in the command
+T_FOLLOWUP_WINDOW = 1.0	# After off edge (on -> off), window of time for the user to input another button to be considered in the command
 T_CANCEL_WINDOW = 4	# After on edge (off -> on), window of time before aborting the command
 
 STATE_IDLE = 0

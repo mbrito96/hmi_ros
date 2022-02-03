@@ -12,50 +12,20 @@ node_name = 'hmi_node'
 enabled = False
 inputs = []
 outputs = []
-
-def NewOutputOrder(data):
-    
-    if(data.type == 'SET'):
-        for o in outputs:
-            if o.name in data.outputs:
-                o.Set()
-    elif(data.type == 'CLEAR'):
-        for o in outputs:
-            if o.name in data.outputs:
-                o.Clear()
-    else:
-        # Tokenize params
-        tok = list(filter(lambda a: False if (a=='' or a==' ' or a=='=') else True, re.split(r'([\d.]+|\W+)', data.params)))
-        tok = [s.strip() for s in tok]
-        tOn_u = tok[2]  # tOn units
-        repeat_u = tok[7]
-        respawn = tok[9]   # Respawn output if '=-'. 
-        # rospy.loginfo('Output order tokens: %s', ' '.join(tok))
-
-        try:
-            tOn = float(tok[1])         # Time on / Duty cycle
-            p = float(tok[4])           # Period
-            repeat = float(tok[6])      # Repeat (for n seconds or n times)
-            respawn_val = float(tok[10])  # Respawn delay
-        except Exception:
-            rospy.logwarn('%s -> Invalid arguments for output order', node_name)
-            return
-
-        for o in outputs:
-            if o.name in data.outputs:
-                o.ConfigToggle(time_on = tOn, time_on_unit = tOn_u, period = p, seq_length = repeat, length_unit = repeat_u, respawn = (-1 if respawn == '=-' else respawn_val))
-
-
+# pub_blue = None
+# msg_blue = outCmd()
 
 def hmi_start():
-    global inputs, outputs
+    global inputs, outputs, pub_blue
 
     rospy.init_node(node_name)
     GPIO.setmode(GPIO.BOARD)
     ConfigureHMI()
     rospy.Subscriber(node_name + '/output_order', outCmd, NewOutputOrder)
     rate = rospy.Rate(Fs) # 10hz
-    outputs[0].ConfigToggle(time_on = 50, time_on_unit = '%', period = 1, seq_length = 2, length_unit = 'n', respawn = 0)
+
+    # rospy.Subscriber('hmi_node/inputs/blue_button', String, ButtonPressed)
+    # pub_blue = rospy.Publisher('/hmi_node/output_order', outCmd, queue_size=10)
 
     while enabled and not rospy.is_shutdown():
         for o in outputs:
@@ -68,6 +38,29 @@ def hmi_start():
 
     GPIO.cleanup()
     
+# def ButtonPressed(data):
+#     s = data.data
+#     if(s == 'SP'):
+#         msg_blue.outputs = ['green_led', 'blue_led']
+#         msg_blue.type = 'TOGGLE'
+#         msg_blue.params = 'on=50% p=0.5 repeat=3n respawn=-1'
+#         pub_blue.publish(msg_blue)
+#     elif(s == 'LP'):
+#         msg_blue.outputs = ['green_led']
+#         msg_blue.type = 'TOGGLE'
+#         msg_blue.params = 'on=50% p=1 repeat=3n respawn=-1'
+#         pub_blue.publish(msg_blue)
+#     elif(s == 'SSP'):
+#         msg_blue.outputs = ['green_led']
+#         msg_blue.type = 'TOGGLE'
+#         msg_blue.params = 'on=50% p=0.2 repeat=2s respawn=-1'
+#         pub_blue.publish(msg_blue)
+#         msg_blue.outputs = ['blue_led']
+#         msg_blue.type = 'TOGGLE'
+#         msg_blue.params = 'on=75% p=0.45 repeat=2s respawn=-1'
+#         pub_blue.publish(msg_blue)
+
+
 def ConfigureHMI():
     global enabled, inputs, outputs, Fs
 
@@ -112,5 +105,38 @@ def AddOutput(config):
     else:
         outputs.append(Toggling_Output(name, pin, Fs, defSt))
         rospy.loginfo('Added output %s', name)
+
+
+def NewOutputOrder(data):
+    
+    if(data.type == 'SET'):
+        for o in outputs:
+            if o.name in data.outputs:
+                o.Set()
+    elif(data.type == 'CLEAR'):
+        for o in outputs:
+            if o.name in data.outputs:
+                o.Clear()
+    else:
+        # Tokenize params
+        tok = list(filter(lambda a: False if (a=='' or a==' ' or a=='=') else True, re.split(r'([\d.]+|\W+)', data.params)))
+        tok = [s.strip() for s in tok]
+        tOn_u = tok[2]  # tOn units
+        repeat_u = tok[7]
+        respawn = tok[9]   # Respawn output if '=-'. 
+        # rospy.loginfo('Output order tokens: %s', ' '.join(tok))
+
+        try:
+            tOn = float(tok[1])         # Time on / Duty cycle
+            p = float(tok[4])           # Period
+            repeat = float(tok[6])      # Repeat (for n seconds or n times)
+            respawn_val = float(tok[10])  # Respawn delay
+        except Exception:
+            rospy.logwarn('%s -> Invalid arguments for output order', node_name)
+            return
+
+        for o in outputs:
+            if o.name in data.outputs:
+                o.ConfigToggle(time_on = tOn, time_on_unit = tOn_u, period = p, seq_length = repeat, length_unit = repeat_u, respawn = (-1 if respawn == '=-' else respawn_val))
 
 
