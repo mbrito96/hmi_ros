@@ -85,6 +85,9 @@ class Input:
 		elif(self.input_buf == [TYPE_LONG_PRESS]):
 			rospy.logdebug('%s -> ==== LONG PRESS ====.', self.name)
 			valDetected = 'LP'	# Long press
+		elif(self.input_buf == [TYPE_SHORT_PRESS, TYPE_LONG_PRESS]):
+			rospy.logdebug('%s -> ==== SHORT LONG PRESS ====.', self.name)
+			valDetected = 'SLP'	# Long press
 		elif(self.input_buf == [TYPE_SHORT_PRESS, TYPE_SHORT_PRESS, TYPE_LONG_PRESS]):
 			rospy.logdebug('%s -> ==== DOUBLE SHORT SINGLE LONG PRESS ====.', self.name)
 			valDetected = 'SSLP'	# Double short Long press

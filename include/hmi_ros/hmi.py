@@ -90,7 +90,6 @@ def AddInput(config):
     if not(isinstance(topic,str) and isinstance(pin, int) and isinstance(bncTime, int) and isinstance(actLow, bool)):
         rospy.loginfo('Unable to configure input %s. Bad parameter format.', name)
     else:
-        rospy.loginfo('Input params %s - %s - %d - %d - %d', name, topic, pin, bncTime, actLow)
         inputs.append(Input(name, topic, pin, bncTime, actLow))
         rospy.loginfo('Added input %s', name)
     
