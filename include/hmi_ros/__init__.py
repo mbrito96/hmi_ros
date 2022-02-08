@@ -1,3 +1,3 @@
-from .hmi import *
-from .outputs import *
-from .inputs import *
+from hmi import *
+from outputs import *
+from inputs import *
