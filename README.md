@@ -9,9 +9,11 @@ To explain:
         - outputs[]: list of outputs for the order to apply
         - type: TOGGLE, SET or CLEAR
         - params: string to indicate the output sequence (only applicable for type TOGGLE)
-            - 'tOn=%d' -> time_on = 100
-            + 's' or '%' -> Time on unit
-            + ';p=%d' -> Period in seconds
-            + ';seq=%d' -> Sequence length
-            + 's' or 'n' -> Sequence unit. Repeat toggle for $seq seconds or $seq times
-            + ';r=%d' -> Respawn delay in seconds. -1 disables respawn feature.
+            - 'on=' + $time_on$ + 's' or '%'
+                - $time_on$ -> float. In seconds or as percentage
+            + ' p=' + $period$
+                - $period$ -> Float. Sequence period in seconds
+            + ' seq=' + $sequence$ + 's' or 'n'
+                - $sequence$ -> Float. Sequence length in       seconds ('s') or as number of times ('n')
+            + ' r=' + $respawn$
+                - $respawn$ -> Respawn delay in seconds before repeating the sequence. -1 disables respawn feature.
